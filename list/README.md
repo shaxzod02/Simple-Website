@@ -1,15 +1,15 @@
-# 2. List
+# List
 Overview
 This section introduces the concept of lists, one of the most common and versatile data structures in programming. A list is a collection of elements that can be modified, resized, and accessed by index.
 
-# 2.1 List in Memory
+## List in Memory
 Lists are typically stored in contiguous blocks of memory. Each element in a list has a specific memory address, and accessing an element by index is fast (constant time, O(1)) due to this layout.
 
 Example: In Python, lists are dynamic arrays that can grow and shrink as needed.
 
 Memory is managed automatically, but understanding the underlying behavior helps with performance optimization.
 
-# 2.2 List Operations
+## List Operations
 Common operations on lists include:
 
 Accessing elements by index: list[i]
@@ -30,7 +30,7 @@ Appending is typically O(1)
 
 Inserting/removing in the middle is O(n)
 
-# 2.3 References and Copying
+## References and Copying
 Lists are reference types in most languages, meaning:
 
 Assigning a list to another variable (e.g., b = a) copies the reference, not the actual data.
@@ -45,7 +45,7 @@ In Java: use .clone() or manual copy
 
 Understanding references is key to avoiding unintended side effects.
 
-# 2.4 Lists in Other Languages
+## Lists in Other Languages
 Python: Lists are dynamic arrays, very flexible and built-in.
 
 C++: Use std::vector for dynamic arrays or std::list for linked lists.
