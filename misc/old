@@ -1,0 +1,348 @@
+function formSubmit() {
+    const savedSection = localStorage.getItem('activeSection') || 'about';
+    alert('Thank you for your report!');
+    setTimeout(() => {
+        showSection(savedSection);
+    }, 5000);
+}
+
+function updateURL(sectionId) {
+    const newURL = `/${sectionId}`;
+    history.pushState({ section: sectionId }, '', newURL);
+}
+
+function showSection(sectionId) {
+    localStorage.removeItem('currentPost');
+    const sections = document.querySelectorAll('#content > section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    const activeSection = document.getElementById(sectionId);
+    if (activeSection) {
+        activeSection.style.display = 'block';
+    } else {
+        console.error('Section with ID ' + sectionId + ' not found.');
+    }
+    if (sectionId !== 'report') localStorage.setItem('activeSection', sectionId);
+    updateActiveLink(sectionId);
+    updateURL(sectionId);
+}
+
+function changeTranscript(type) {
+    var iframe = document.getElementById('transcriptFrame');
+    var unofficialLink = document.getElementById('unofficialTranscriptLink');
+    var officialLink = document.getElementById('officialTranscriptLink');
+
+    if (type === 'unofficial') {
+        iframe.src = '/assets/PDF/Aidan Andrews Unofficial Transcript.pdf';
+        unofficialLink.classList.add('active');
+        officialLink.classList.remove('active');
+    } else if (type === 'official') {
+        iframe.src = 'assets/PDF/Aidan Andrews Official Transcript.pdf';
+        unofficialLink.classList.remove('active');
+        officialLink.classList.add('active');
+    }
+}
+
+function updateActiveLink(activeSectionId) {
+    localStorage.removeItem('currentPost');
+    const navLinks = document.querySelectorAll('nav a');
+    navLinks.forEach(link => {
+        const sectionName = link.getAttribute('onclick').match(/'([^']+)'/)[1];
+        if (sectionName === activeSectionId) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+
+function loadBugReportForm() {
+    fetch('/external/report.php')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('modal-content').innerHTML = html;
+        document.getElementById('modal').style.display = 'block';
+    })
+    .catch(error => console.error('Failed to load form:', error));
+}
+
+function clearLocalStorageAfterDelay() {
+    setTimeout(() => {
+        localStorage.clear();
+        alert('Local storage has been cleared due to inactivity.');
+    }, 36000000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    clearLocalStorageAfterDelay();
+    handleNavigation();
+
+    const navLinks = document.querySelectorAll('nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(event) {
+            const sectionId = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+            showSection(sectionId);
+            event.preventDefault();
+        });
+    });
+  loadBlogPosts();
+});
+
+window.addEventListener('popstate', (event) => {
+    handleNavigation();
+});
+
+function handleNavigation() {
+    const pathSegments = window.location.pathname.split('/').filter(segment => segment);
+    const sectionId = pathSegments[0];
+    const postId = pathSegments[1];
+
+    if (sectionId === 'blogPost' && postId) {
+        loadPost(postId);
+    } else if (sectionId) {
+        showSection(sectionId);
+    } else {
+        const savedSection = localStorage.getItem('activeSection') || 'about';
+        showSection(savedSection);
+    }
+
+    const currentCategory = localStorage.getItem('currentCategory') || 'all';
+    filterPosts(currentCategory);
+}
+
+
+
+//////////// Blog ///////////////////////
+
+function topicPosts(category) {
+    backToBlog();
+    filterPosts(category);
+}
+
+function backToBlog() {
+    document.getElementById('blog').style.display = 'block';
+    document.getElementById('blogPost').style.display = 'none';
+    localStorage.removeItem('currentPost');
+    localStorage.setItem('activeSection', 'blog');
+    updateURL('blog');
+}
+
+function loadBlogPosts() {
+  fetch('/blog-posts.json')
+    .then(response => response.json())
+    .then(posts => {
+      const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = '';
+      posts.forEach(post => {
+        const postElement = createPostElement(post);
+        postsContainer.appendChild(postElement);
+      });
+    })
+    .catch(error => console.error('Error loading blog posts:', error));
+}
+
+function createPostElement(post) {
+  const article = document.createElement('article');
+  article.setAttribute('blog', 'post');
+  article.id = post.id;
+
+  article.innerHTML = `
+    <a href="javascript:void(0);" onclick="loadPost('${post.id}')" blog>${post.title}</a>
+    <div class="date">Written on ${formatDate(post.date)}</div>
+    <div class="entry">
+      <p>${post.summary}</p>
+    </div>
+    <a href="javascript:void(0);" onclick="loadPost('${post.id}')" read>read more</a>
+  `;
+
+  return article;
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function loadPost(postId) {
+    fetch('/blog-posts.json')
+      .then(response => response.json())
+      .then(posts => {
+              const post = posts.find(p => p.id === postId);
+              if (post) {
+                        fetch(post.content)
+                          .then(response => response.text())
+                          .then(content => {
+                                        document.getElementById('postContent').innerHTML = `
+                                          <h1 class="post-title">${post.title}</h1>
+                                            <p class="post-date">${formatDate(post.date)}</p>
+                                                          ${parseMarkdown(content)}
+                                                                      `;
+                                                                                  document.getElementById('blog').style.display = 'none';
+                                                                                              document.getElementById('blogPost').style.display = 'block';
+                                        localStorage.setItem('currentPost', postId);
+                                        localStorage.setItem('activeSection', 'blogPost');
+                                        updateURL(`blogPost/${postId}`);
+                                      })
+                          .catch(error => console.error('Error loading post content:', error));
+                      }
+            })
+      .catch(error => console.error('Error loading blog posts:', error));
+}
+
+function loadPost(postId) {
+  fetch('/blog-posts.json')
+    .then(response => response.json())
+    .then(posts => {
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        fetch(post.content)
+          .then(response => response.text())
+          .then(content => {
+            document.getElementById('postContent').innerHTML = `
+              <h1 class="post-title">${post.title}</h1>
+              <p class="post-date">${formatDate(post.date)}</p>
+              ${parseMarkdown(content)}
+            `;
+            document.getElementById('blog').style.display = 'none';
+            document.getElementById('blogPost').style.display = 'block';
+            localStorage.setItem('currentPost', postId);
+            localStorage.setItem('activeSection', 'blogPost');
+            updateURL(`blogPost/${postId}`);
+          })
+          .catch(error => console.error('Error loading post content:', error));
+      }
+    })
+    .catch(error => console.error('Error loading blog posts:', error));
+}
+
+function filterPosts(category) {
+  fetch('/blog-posts.json')
+    .then(response => response.json())
+    .then(posts => {
+      const filteredPosts = category === 'all' ? posts : posts.filter(post => post.category === category);
+      const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = '';
+      filteredPosts.forEach(post => {
+        const postElement = createPostElement(post);
+        postsContainer.appendChild(postElement);
+      });
+    })
+    .catch(error => console.error('Error filtering posts:', error));
+
+  const buttons = document.querySelectorAll('nav[blog] button');
+  buttons.forEach(button => {
+    if (button.textContent.toLowerCase() === category) {
+      button.classList.add('active');
+    } else {
+      button.classList.remove('active');
+    }
+  });
+}
+
+function parseMarkdown(markdown) {
+  let html = markdown
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.*)\*\*/gm, '<strong>$1</strong>')
+    .replace(/\*(.*)\*/gm, '<em>$1</em>')
+    .replace(/\[(.*?)\]\((.*?)\)/gm, '<a href="$2" target="_blank" rel="noopener noreferrer" alt>$1</a>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/^> (.*$)/gm, '<blockquote><p>$1</p></blockquote>');
+
+  html = html.replace(/<div align="center">\s*<img src="(.*?)" alt="(.*?)" \/>\s*<br \/>\s*<em>(.*?)<\/em>\s*<\/div>/gm, 
+    '<figure class="centered-image">' +
+    '<img src="$1" alt="$2" />' +
+    '<figcaption>$3</figcaption>' +
+    '</figure>'
+  );
+
+  html = html.replace(/^(?!<[a-z])(.*$)/gm, '<p>$1</p>');
+
+  return html;
+}
+
+let graph;
+
+function initGraph() {
+    fetch('/blog-posts.json')
+        .then(response => response.json())
+        .then(posts => {
+            const nodes = [];
+            const links = [];
+            
+            // Add category nodes
+            const categories = ['Misc', 'Computer Science', 'Machine Learning', 'Physics'];
+            categories.forEach(category => {
+                nodes.push({ id: category, name: category, val: 15, group: category });
+            });
+            
+            // Add post nodes and links
+            posts.forEach(post => {
+                nodes.push({ id: post.id, name: post.title, val: 10, group: post.category });
+                links.push({ source: post.category, target: post.id });
+            });
+
+            const graphContainer = document.getElementById('graphView');
+            const width = graphContainer.clientWidth;
+            const height = graphContainer.clientHeight;
+
+            graph = ForceGraph()
+                (graphContainer)
+                .width(width)
+                .height(height)
+                .graphData({ nodes, links })
+                .nodeId('id')
+                .nodeVal('val')
+                .nodeLabel('name')
+                .nodeColor(node => getNodeColor(node.group))
+                .linkColor(() => '#999')
+                .onNodeClick(node => {
+                    if (categories.includes(node.id)) {
+                        filterPosts(node.id);
+                    } else {
+                        loadPost(node.id);
+                    }
+                    toggleGraphView();
+                });
+
+            // Add window resize event listener to update graph size
+            window.addEventListener('resize', () => {
+                graph.width(graphContainer.clientWidth);
+                graph.height(graphContainer.clientHeight);
+            });
+        });
+}
+
+function toggleGraphView() {
+    const postsContainer = document.getElementById('postsContainer');
+    const graphView = document.getElementById('graphView');
+    
+    if (graphView.style.display === 'none') {
+        postsContainer.style.display = 'none';
+        graphView.style.display = 'block';
+        if (!graph) {
+            initGraph();
+        } else {
+            // Update graph size when toggling view
+            const width = graphView.clientWidth;
+            const height = graphView.clientHeight;
+            graph.width(width).height(height);
+        }
+    } else {
+        postsContainer.style.display = 'block';
+        graphView.style.display = 'none';
+    }
+}
+
+function getNodeColor(group) {
+    const colors = {
+        Misc: '#ff7f0e',
+        Computer Science: '#2ca02c',
+        Machine Learning: '#d62728',
+        Physics: '#9467bd'
+    };
+    return colors[group] || '#1f77b4';
+}
+
