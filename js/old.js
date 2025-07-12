@@ -1,9 +1,9 @@
-function s(r, t) {
-    const e = document.createElement(r);
-    return t && typeof t == "string" && t !== "" && (e.textContent = t),
-    t && typeof t == "object" && Object.keys(t).forEach(i=>{
-        e.setAttribute(i, t[i])
-    }
+// function s(r, t) {
+//     const e = document.createElement(r);
+//     return t && typeof t == "string" && t !== "" && (e.textContent = t),
+//     t && typeof t == "object" && Object.keys(t).forEach(i=>{
+//         e.setAttribute(i, t[i])
+//     }
     ),
     e
 }
